@@ -310,6 +310,53 @@ If you get CORS errors in the browser, confirm `REPROPACK_CORS_ORIGINS` includes
 | Prod w/ volume | https://your-frontend.vercel.app | /data/packages |
 | Staging | https://staging-frontend.vercel.app | /data/packages |
 
+### Deploying Backend to Fly.io
+
+1. Install CLI (Windows PowerShell):
+  ```powershell
+  winget install flyctl
+  ```
+2. Auth:
+  ```powershell
+  fly auth signup   # or: fly auth login
+  ```
+3. From repo root (Dockerfile present):
+  ```powershell
+  fly launch --no-deploy --now=false
+  ```
+  - Choose an app name (unique).
+  - Internal port: 8080.
+4. Create persistent volume for packages:
+  ```powershell
+  fly volumes create packages_data --size 1 --region iad
+  ```
+5. Edit `fly.toml` to mount volume (add if absent):
+  ```toml
+  [mounts]
+    source = "packages_data"
+    destination = "/data"
+  ```
+6. Set secrets (env vars):
+  ```powershell
+  fly secrets set REPROPACK_CORS_ORIGINS=https://your-frontend-domain.vercel.app REPROPACK_PACKAGES_DIR=/data/packages
+  ```
+7. Deploy:
+  ```powershell
+  fly deploy
+  ```
+8. Verify logs & health:
+  ```powershell
+  fly logs --since 1m
+  curl https://<app-name>.fly.dev/health
+  ```
+9. Frontend: set `NEXT_PUBLIC_API_BASE=https://<app-name>.fly.dev` then redeploy on Vercel.
+
+Auto-scaling / cost tips:
+- Enable auto_stop/auto_start in `fly.toml` (added by default with new Machines apps) for scale-to-zero.
+- Keep volume small (1GB) initially; increase if package ZIPs accumulate.
+
+Cleanup strategy (future): schedule a GitHub Action or local cron hitting an admin endpoint to remove old ZIPs (> N days) from `/data/packages`.
+
 ## Roadmap Ideas
 - Optional S3/Blob storage backend for packages
 - Auth & API keys
