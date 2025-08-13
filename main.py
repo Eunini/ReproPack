@@ -26,17 +26,33 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+"""Runtime configuration
+
+Environment variables:
+  REPROPACK_CORS_ORIGINS  Comma-separated list of allowed origins. '*' (default) allows all.
+  REPROPACK_PACKAGES_DIR  Directory to store generated package archives (default: 'packages').
+  PORT                    Port for uvicorn when running via __main__ (Railway provides this).
+"""
+
+raw_origins = os.getenv("REPROPACK_CORS_ORIGINS", "*")
+ALLOWED_ORIGINS = [o.strip() for o in raw_origins.split(",") if o.strip()] or ["*"]
+
+# If wildcard present, FastAPI expects ["*"] explicitly
+if "*" in ALLOWED_ORIGINS:
+    cors_origins = ["*"]
+else:
+    cors_origins = ALLOWED_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configuration
-PACKAGES_DIR = "packages"
+# Packages directory (can be backed by a Railway volume mount like /data)
+PACKAGES_DIR = os.getenv("REPROPACK_PACKAGES_DIR", "packages")
 os.makedirs(PACKAGES_DIR, exist_ok=True)
 
 
@@ -66,18 +82,18 @@ async def create_package(request: CreatePackageRequest):
         if request.dependencies:
             validation_errors = validate_pip_dependencies(request.dependencies)
             if validation_errors:
+                # Raise 400 preserving message
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail=f"Invalid dependency format: {'; '.join(validation_errors)}"
                 )
-        
+
         # Generate unique package ID
         package_id = generate_package_id()
-        
+
         # Create package archive
         package_path, file_size = create_package_archive(request, package_id, PACKAGES_DIR)
-        
-        # Return response
+
         return PackageResponse(
             package_id=package_id,
             project_name=request.project_name,
@@ -85,8 +101,11 @@ async def create_package(request: CreatePackageRequest):
             file_path=package_path,
             file_size=file_size
         )
-        
+    except HTTPException as http_exc:
+        # Re-raise FastAPI HTTP errors (e.g., 400 validation)
+        raise http_exc
     except Exception as e:
+        # Unexpected server-side failure
         raise HTTPException(status_code=500, detail=f"Failed to create package: {str(e)}")
 
 
