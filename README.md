@@ -357,6 +357,30 @@ Auto-scaling / cost tips:
 
 Cleanup strategy (future): schedule a GitHub Action or local cron hitting an admin endpoint to remove old ZIPs (> N days) from `/data/packages`.
 
+### Deploying Backend to Koyeb
+
+1. Sign in at https://app.koyeb.com (create account if needed).
+2. New Service → "Deploy a Docker image from your GitHub repository".
+3. Select this repository (ensure it is pushed and public or connected privately).
+4. Build configuration:
+  - Dockerfile path: `Dockerfile`
+  - Exposed port: 8080
+5. Environment variables:
+  - `REPROPACK_CORS_ORIGINS` = `https://your-frontend-domain.vercel.app`
+  - `REPROPACK_PACKAGES_DIR` = `/data/packages`
+6. Volume (persistent storage): create a 1GB volume and mount at `/data`.
+7. Region: choose closest to users (e.g. `fra` or `iad`).
+8. Instance size: start with `nano` (sufficient for light usage).
+9. Deploy the service.
+10. After deploy: visit the generated Koyeb domain (e.g. `https://repropack-api-<hash>.koyeb.app/health`).
+11. Frontend: set `NEXT_PUBLIC_API_BASE` to the Koyeb URL and redeploy.
+
+Optional manifest: `koyeb.yaml` included for future GitOps style deploys.
+
+Notes:
+- Koyeb sets `PORT` automatically; app now reads it when run directly.
+- Scale-to-zero not currently available; keep one small instance.
+
 ## Roadmap Ideas
 - Optional S3/Blob storage backend for packages
 - Auth & API keys

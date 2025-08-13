@@ -1,0 +1,31 @@
+# Koyeb deployment manifest for ReproPack backend
+# Docs: https://www.koyeb.com/docs
+
+services:
+  - name: repropack-api
+    type: web
+    runtime: docker
+    docker:
+      dockerfile: Dockerfile
+      targetPort: 8080
+    ports:
+      - port: 80
+        http_options:
+          enable_http3: true
+    regions:
+      - fra  # choose closest region (fra, par, iad, etc.)
+    env:
+      - key: REPROPACK_CORS_ORIGINS
+        value: https://your-frontend-domain.vercel.app
+      - key: REPROPACK_PACKAGES_DIR
+        value: /data/packages
+    volumes:
+      - name: packages-storage
+        mount_path: /data
+        size: 1GB
+    autoscaling:
+      instance_type: nano
+      min_instances: 1
+      max_instances: 1
+      cpu_threshold: 70
+      memory_threshold: 70
