@@ -1,0 +1,49 @@
+{
+  "name": "ReproPack Dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "REPROPACK_CORS_ORIGINS": "*",
+    "REPROPACK_PACKAGES_DIR": "/workspaces/ReproPack/packages"
+  },
+  "forwardPorts": [8080, 3000],
+  "portsAttributes": {
+    "8080": {
+      "label": "FastAPI Backend",
+      "onAutoForward": "openBrowser"
+    },
+    "3000": {
+      "label": "Next.js Frontend",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && cd frontend && npm install",
+  "postAttachCommand": {
+    "server": "bash -lc 'if [ ! -f .venv/bin/activate ]; then python -m venv .venv; fi; source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8080'"
+  },
+  "updateContentCommand": "pip install -r requirements.txt",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/ReproPack,type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/ReproPack"
+}
