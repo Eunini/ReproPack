@@ -1,20 +1,15 @@
 # ReproPack Backend - Dockerfile for Render
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    # Add Rust's cargo bin to the PATH
-    PATH="/root/.cargo/bin:${PATH}"
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install system dependencies: build-essential for C extensions, curl for rustup
+# System deps (optional: build tools if needed for future packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates build-essential && rm -rf /var/lib/apt/lists/*
-
-# Install Rust toolchain
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+    build-essential && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt ./
